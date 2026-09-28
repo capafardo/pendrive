@@ -1,0 +1,12 @@
+# Backups e temporários de editores
+*~
+*.swp
+*.swo
+*.tmp
+
+# Logs
+*.log
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
