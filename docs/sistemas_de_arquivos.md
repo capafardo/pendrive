@@ -1,6 +1,6 @@
 # 🛠️ Sistemas de Arquivos em Mídias Removíveis
 
-Este documento detalha o funcionamento, as características, as vantagens e as limitações dos sistemas de arquivos suportados pelo script `corrigir_pendrive.sh`.
+Este documento detalha o funcionamento, as características, as vantagens e as limitações dos sistemas de arquivos e formatos suportados pelo utilitário `iniciar.sh`.
 
 ---
 
@@ -12,6 +12,7 @@ Este documento detalha o funcionamento, as características, as vantagens e as l
 | **exFAT** | 16 EB (praticamente ilimitado) | Windows, macOS, Linux (kernel >= 5.7 ou `exfatprogs`) | Não | Pendrives grandes, cartões SDXC de câmeras, filmes 4K |
 | **NTFS** | 16 TB (limite prático) | Windows (nativo), Linux (leitura/escrita via `ntfs-3g`), macOS (apenas leitura nativa) | Sim | Pendrives para ambientes predominantemente Windows |
 | **EXT4** | 16 TB | Linux nativo (outros sistemas exigem softwares terceiros) | Sim | Dispositivos dedicados a servidores ou estações Linux |
+| **ISO 9660 / UDF** | Varia (tamanho da imagem) | Universal para Boot (BIOS / UEFI) | Não (Somente Leitura) | Mídias de instalação de sistemas operacionais (Live USB) |
 
 ---
 
@@ -60,6 +61,15 @@ Este documento detalha o funcionamento, as características, as vantagens e as l
   - Não é legível nativamente no Windows ou macOS sem a instalação de drivers específicos de terceiros.
 * **Ferramenta de reparo no Linux**: `e2fsck` (pacote `e2fsprogs`).
 
+### 2.5 ISO 9660 e Mídias Híbridas (ISOHybrid)
+* **Estrutura**: Padrão internacional para mídia óptica (CD-ROM/DVD). Quando adaptado para o formato *ISOHybrid*, inclui cabeçalhos MBR/GPT válidos permitindo inicialização tanto em computadores com BIOS Legado quanto UEFI modernos.
+* **Características**:
+  - É um sistema de arquivos estritamente **somente leitura** (*read-only*).
+  - Ao ser gravado via `dd`, assume o controle integral dos primeiros setores do pendrive.
+  - O sistema operacional reportará a capacidade do pendrive como sendo exatamente o tamanho da ISO (ex: um pendrive de 64 GB parecerá ter apenas 3.8 GB).
+* **Restauração**:
+  - Para converter o pendrive de volta a um dispositivo de armazenamento comum após instalar a distribuição, utilize a **Opção [8] (Zerar Tabela / Reviver Pendrive Travado)** do script.
+
 ---
 
 ## 3. Recomendações de Escolha na Formatação
@@ -68,3 +78,4 @@ Este documento detalha o funcionamento, as características, as vantagens e as l
 2. **Se você transfere arquivos grandes (vídeos, ISOs) entre computadores Windows e Mac**: Escolha **exFAT**.
 3. **Se o pendrive será usado exclusivamente em PCs com Windows e Linux**: Escolha **NTFS**.
 4. **Se o pendrive será usado para backups ou transferências exclusivas em Linux**: Escolha **EXT4**.
+5. **Se o objetivo for criar um pendrive bootável de instalação**: Escolha a **Opção [9] (Gravar Imagem ISO)**.

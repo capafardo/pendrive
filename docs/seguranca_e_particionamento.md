@@ -54,7 +54,22 @@ dd if=/dev/zero of=/dev/sdX bs=1M count=10 status=progress conv=fsync
 
 ---
 
-## 4. O Buffer de Disco e a Ejeção Segura
+## 4. Gravação de Imagens ISO em Bloco Bruto (*Raw Device Writing*)
+
+A gravação de sistemas operacionais inicializáveis (distribuições Linux em geral) exige a reprodução exata da estrutura de blocos da imagem de instalação no pendrive:
+
+### 4.1 Por que escrever no disco inteiro (`/dev/sdX`) e não em uma partição (`/dev/sdX1`)?
+* **O Setor de Boot**: Para que a placa-mãe (BIOS ou UEFI) inicialize pelo pendrive, ela procura o código de inicialização no **Setor 0** (Master Boot Record / cabeçalho GPT).
+* Se a imagem fosse gravada em `/dev/sdX1`, ela seria confinada dentro de uma partição existente, e o pendrive não teria o bootloader no setor zero, tornando o boot impossível.
+* Por isso, o script resolve automaticamente o disco pai caso o usuário tenha selecionado uma partição individual.
+
+### 4.2 Desempenho e Integridade com `bs=4M` e `oflag=sync`
+* **Tamanho do Bloco (`bs=4M`)**: Alinha as operações de I/O ao tamanho dos blocos de páginas das memórias Flash modernas, evitando fragmentação e multiplicando a velocidade de transferência.
+* **Flag de Sincronização Direta (`oflag=sync`)**: Cada bloco de 4 MB gravado é confirmado fisicamente no pendrive antes que o próximo seja despachado, evitando acúmulo excessivo na memória RAM e garantindo que a barra de progresso reflita o estado real da gravação física.
+
+---
+
+## 5. O Buffer de Disco e a Ejeção Segura
 
 ### 4.1 Por que o comando `sync` é crucial?
 Para acelerar a experiência do usuário, sistemas operacionais modernos não gravam imediatamente os dados no pendrive assim que a barra de progresso gráfica termina. O Linux armazena os dados em um buffer na memória RAM (**Dirty Cache**).

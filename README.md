@@ -151,6 +151,7 @@ O script conta com proteções ativas:
 
 Para compreender os conceitos avançados de hardware, kernel e sistemas de arquivos envolvidos, consulte os guias na pasta [`docs/`](docs/):
 
-* [**Sistemas de Arquivos (`docs/sistemas_de_arquivos.md`)**](docs/sistemas_de_arquivos.md): Comparação detalhada entre FAT32, exFAT, NTFS e EXT4, limites de arquivos e compatibilidade entre sistemas operacionais.
+* [**Sistemas de Arquivos (`docs/sistemas_de_arquivos.md`)**](docs/sistemas_de_arquivos.md): Comparação detalhada entre FAT32, exFAT, NTFS, EXT4 e ISO 9660, limites de arquivos e compatibilidade entre sistemas operacionais.
+* [**Gravação de ISO e Boot (`docs/gravacao_de_iso_e_boot.md`)**](docs/gravacao_de_iso_e_boot.md): Funcionamento de imagens híbridas (ISOHybrid), criação de pendrives bootáveis, testes com QEMU e recuperação de espaço.
 * [**Diagnóstico e Reparo Interno (`docs/diagnostico_e_reparo.md`)**](docs/diagnostico_e_reparo.md): Como funcionam `fsck`, `dosfsck`, `ntfsfix` e `badblocks`, além da diferença entre erro lógico e físico.
-* [**Segurança e Particionamento (`docs/seguranca_e_particionamento.md`)**](docs/seguranca_e_particionamento.md): Funcionamento do bloqueio de segurança contra formatação da raiz, MBR vs GPT, alinhamento de blocos e ciclo elétrico da porta USB.
+* [**Segurança e Particionamento (`docs/seguranca_e_particionamento.md`)**](docs/seguranca_e_particionamento.md): Funcionamento do bloqueio de segurança contra formatação da raiz, escrita em bloco bruto (`dd`), MBR vs GPT e ciclo elétrico da porta USB.
