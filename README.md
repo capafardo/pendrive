@@ -78,8 +78,9 @@ sudo ./iniciar.sh
   [6] Verificar Setores Defeituosos (Badblocks)
   [7] Formatar Pendrive (FAT32, NTFS, exFAT ou EXT4)
   [8] Zerar Tabela / Reviver Pendrive Travado (DD + Nova MBR)
-  [9] Teste de Velocidade (Leitura e Escrita)
-  [10] Ejetar Pendrive com Segurança
+  [9] Gravar Imagem ISO no Pendrive (Criar Pendrive Bootável)
+  [10] Teste de Velocidade (Leitura e Escrita)
+  [11] Ejetar Pendrive com Segurança
   ------------------------------------------------------------
   [0] Sair
 ```
@@ -96,8 +97,9 @@ sudo ./iniciar.sh
 | **`[6]`** | **Verificar Badblocks** | Testa se há células de memória física queimadas ou danificadas no chip flash. Possui modo seguro e modo profundo. | ❌ (Modo Leitura)<br>⚠️ **SIM** (Modo Escrita) |
 | **`[7]`** | **Formatar Pendrive** | Cria uma partição nova e limpa no formato escolhido (FAT32, NTFS, exFAT ou EXT4) com um nome personalizado. | ⚠️ **SIM** |
 | **`[8]`** | **Zerar Tabela (Reviver Mídia)** | Grava zeros brutos nos primeiros setores via `dd`. Perfeito para pendrives "invisíveis", ilegíveis ou com partições travadas. | ⚠️ **SIM** |
-| **`[9]`** | **Teste de Velocidade** | Escreve um arquivo de teste de 100 MB e mede a velocidade real em MB/s de gravação e leitura. | ❌ Não |
-| **`[10]`** | **Ejetar Pendrive** | Descarrega a memória RAM para o disco (`sync`), desmonta partições e desliga a energia elétrica da porta USB. | ❌ Não |
+| **`[9]`** | **Gravar Imagem ISO** | Escreve uma ISO híbrida de distribuição Linux diretamente no pendrive via `dd` para criar uma mídia bootável. | ⚠️ **SIM** |
+| **`[10]`** | **Teste de Velocidade** | Escreve um arquivo de teste de 100 MB e mede a velocidade real em MB/s de gravação e leitura. | ❌ Não |
+| **`[11]`** | **Ejetar Pendrive** | Descarrega a memória RAM para o disco (`sync`), desmonta partições e desliga a energia elétrica da porta USB. | ❌ Não |
 | **`[0]`** | **Sair / Voltar** | Encerra o script ou volta para o menu imediatamente. | ❌ Não |
 
 ---
@@ -122,6 +124,15 @@ sudo ./iniciar.sh
 1. Selecione a unidade com a opção **`1`**.
 2. Escolha a opção **`6` (Verificar Badblocks)** e selecione a opção `1` (Teste de Leitura Seguro).
 3. Se o teste apontar blocos defeituosos, o chip flash do pendrive está se degradando fisicamente. Faça backup imediato dos dados e substitua o dispositivo.
+
+### 🔹 Cenário D: Criar um pendrive bootável para instalar distribuições Linux
+1. Baixe o arquivo `.iso` da sua distribuição favorita (ex: Ubuntu, Fedora, Debian, Linux Mint).
+2. Abra o script: `sudo ./iniciar.sh`.
+3. Escolha **`1`** e selecione o pendrive de destino.
+4. Escolha a opção **`9` (Gravar Imagem ISO no Pendrive)**.
+5. Arraste a ISO para o terminal ou digite o caminho do arquivo (com suporte a autocompletar via `Tab`).
+6. O script verificará se a ISO cabe no pendrive e solicitará a confirmação digitada (`GRAVAR`).
+7. Ao término da escrita, o pendrive estará pronto para dar boot e instalar o sistema!
 
 ---
 

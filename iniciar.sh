@@ -546,6 +546,137 @@ zerar_tabela_mbr() {
     pausar
 }
 
+# Gravar imagem ISO no pendrive (Criar pendrive inicializável / bootável)
+gravar_imagem_iso() {
+    cabecalho
+    garantir_selecao || return 0
+
+    # Certificar que a operação será no disco inteiro (/dev/sdX) e não em partição isolada
+    local disco_alvo="$DISPOSITIVO_ATUAL"
+    local tipo_dev
+    tipo_dev=$(lsblk -no TYPE "$disco_alvo" 2>/dev/null)
+    if [[ "$tipo_dev" == "part" ]]; then
+        local pk
+        pk=$(lsblk -no PKNAME "$disco_alvo" 2>/dev/null)
+        if [[ -n "$pk" ]]; then
+            disco_alvo="/dev/$pk"
+        fi
+    fi
+
+    # Proteção de segurança contra discos de sistema
+    if is_disco_sistema "$disco_alvo"; then
+        echo -e "${VERMELHO}[ALERTA MÁXIMO] $disco_alvo contém partições vitais do sistema! Operação abortada.${SEM_COR}"
+        pausar
+        return 1
+    fi
+
+    echo -e "${CIANO}--- GRAVAR IMAGEM ISO / CRIAR PENDRIVE BOOTÁVEL ---${SEM_COR}\n"
+    echo -e "Esta função grava uma imagem (.iso ou .img) diretamente no pendrive:"
+    echo -e "Dispositivo de destino: ${VERDE}${disco_alvo}${SEM_COR}"
+    echo -e "Capacidade do pendrive: ${AMARELO}$(lsblk -dn -o SIZE "$disco_alvo" 2>/dev/null)${SEM_COR}\n"
+    echo -e "${VERMELHO}[ATENÇÃO] TODAS AS PARTIÇÕES E DADOS DO PENDRIVE SERÃO APAGADOS!${SEM_COR}\n"
+    echo -e "Dica: Você pode arrastar o arquivo ISO para o terminal ou usar [Tab] para autocompletar."
+    echo -e "Digite ${NEGRITO}0${SEM_COR} a qualquer momento para cancelar.\n"
+
+    local caminho_iso=""
+    while true; do
+        read -e -rp "Caminho do arquivo ISO: " caminho_iso
+
+        if [[ "$caminho_iso" == "0" ]]; then
+            echo -e "Operação cancelada."
+            pausar
+            return 0
+        fi
+
+        # Remove aspas caso o usuário tenha arrastado o arquivo para o terminal
+        caminho_iso="${caminho_iso#\'}"
+        caminho_iso="${caminho_iso%\'}"
+        caminho_iso="${caminho_iso#\"}"
+        caminho_iso="${caminho_iso%\"}"
+        
+        # Expande ~ caso exista
+        eval caminho_iso="$caminho_iso" 2>/dev/null || true
+
+        if [[ -z "$caminho_iso" || ! -f "$caminho_iso" ]]; then
+            echo -e "${VERMELHO}[ERRO] Arquivo não encontrado ou inválido: '$caminho_iso'${SEM_COR}\n"
+            continue
+        fi
+
+        if [[ ! -r "$caminho_iso" ]]; then
+            echo -e "${VERMELHO}[ERRO] Sem permissão para ler o arquivo: '$caminho_iso'${SEM_COR}\n"
+            continue
+        fi
+
+        break
+    done
+
+    # Comparar tamanho da imagem com a capacidade do disco
+    local tam_iso_bytes tam_disco_bytes
+    tam_iso_bytes=$(stat -c%s "$caminho_iso" 2>/dev/null || wc -c < "$caminho_iso")
+    tam_disco_bytes=$(lsblk -bno SIZE "$disco_alvo" 2>/dev/null | head -n 1)
+
+    local tam_iso_hum tam_disco_hum
+    tam_iso_hum=$(numfmt --to=iec-i --suffix=B "$tam_iso_bytes" 2>/dev/null || ls -lh "$caminho_iso" | awk '{print $5}')
+    tam_disco_hum=$(lsblk -dno SIZE "$disco_alvo" 2>/dev/null)
+
+    echo ""
+    echo -e "Arquivo de imagem:      ${VERDE}$caminho_iso${SEM_COR} (${tam_iso_hum})"
+    echo -e "Pendrive de destino:    ${AMARELO}$disco_alvo${SEM_COR} (${tam_disco_hum})"
+
+    if [[ -n "$tam_disco_bytes" && "$tam_iso_bytes" -gt "$tam_disco_bytes" ]]; then
+        echo -e "\n${VERMELHO}[ERRO CRÍTICO] A imagem ISO ($tam_iso_hum) é maior que a capacidade do pendrive ($tam_disco_hum)!${SEM_COR}"
+        echo -e "A gravação não pode ser realizada."
+        pausar
+        return 1
+    fi
+
+    echo ""
+    echo -e "${VERMELHO}Para confirmar a destruição dos dados em $disco_alvo e a gravação da ISO,${SEM_COR}"
+    read -rp "digite exatamente 'GRAVAR' ou '0' para cancelar: " confirmacao
+
+    if [[ "$confirmacao" != "GRAVAR" ]]; then
+        echo -e "Operação cancelada pelo usuário."
+        pausar
+        return 0
+    fi
+
+    # Desmonta todas as partições do pendrive antes de gravar
+    echo -e "\n${AMARELO}1. Desmontando partições ativas de $disco_alvo...${SEM_COR}"
+    for p in $(lsblk -lno NAME "$disco_alvo" 2>/dev/null | tail -n +2); do
+        umount -f "/dev/$p" 2>/dev/null || true
+    done
+
+    echo -e "${CIANO}2. Gravando imagem ISO em $disco_alvo via dd...${SEM_COR}"
+    echo -e "Aguarde, este processo pode levar alguns minutos dependendo da velocidade da porta e da mídia.\n"
+
+    if dd if="$caminho_iso" of="$disco_alvo" bs=4M status=progress oflag=sync; then
+        echo -e "\n${CIANO}3. Sincronizando buffers de disco (sync)...${SEM_COR}"
+        sync
+        udevadm settle 2>/dev/null || sleep 2
+        partprobe "$disco_alvo" 2>/dev/null || true
+
+        # Atualizar partição selecionada
+        local p1
+        p1=$(lsblk -lno NAME "$disco_alvo" 2>/dev/null | tail -n +2 | head -n 1)
+        if [[ -n "$p1" ]]; then
+            PARTICAO_ATUAL="/dev/$p1"
+        else
+            PARTICAO_ATUAL=""
+        fi
+
+        echo -e "\n${VERDE}============================================================${SEM_COR}"
+        echo -e "${VERDE}[SUCESSO] Imagem ISO gravada com sucesso em $disco_alvo!${SEM_COR}"
+        echo -e "${VERDE}Seu pendrive agora é inicializável (bootável).${SEM_COR}"
+        echo -e "${VERDE}============================================================${SEM_COR}"
+        echo -e "${AMARELO}Nota:${SEM_COR} Para restaurar este pendrive para uso normal no futuro,"
+        echo -e "utilize a Opção [8] (Zerar Tabela / Reviver Pendrive Travado)."
+    else
+        echo -e "\n${VERMELHO}[ERRO] Falha durante a gravação da imagem ISO no dispositivo.${SEM_COR}"
+    fi
+
+    pausar
+}
+
 # Teste simples de velocidade de escrita e leitura
 teste_velocidade() {
     cabecalho
@@ -662,12 +793,13 @@ menu_principal() {
         echo -e "  [6] Verificar Setores Defeituosos (Badblocks)"
         echo -e "  [7] Formatar Pendrive (FAT32, NTFS, exFAT ou EXT4)"
         echo -e "  [8] Zerar Tabela / Reviver Pendrive Travado (DD + Nova MBR)"
-        echo -e "  [9] Teste de Velocidade (Leitura e Escrita)"
-        echo -e "  [10] Ejetar Pendrive com Segurança"
+        echo -e "  [9] Gravar Imagem ISO no Pendrive (Criar Pendrive Bootável)"
+        echo -e "  [10] Teste de Velocidade (Leitura e Escrita)"
+        echo -e "  [11] Ejetar Pendrive com Segurança"
         echo -e "  ------------------------------------------------------------"
         echo -e "  [0] Sair"
         echo ""
-        read -rp "Selecione uma opção [0-10]: " opcao
+        read -rp "Selecione uma opção [0-11]: " opcao
 
         case "$opcao" in
             1) selecionar_dispositivo ;;
@@ -678,14 +810,15 @@ menu_principal() {
             6) verificar_badblocks ;;
             7) formatar_pendrive ;;
             8) zerar_tabela_mbr ;;
-            9) teste_velocidade ;;
-            10) ejetar_pendrive ;;
+            9) gravar_imagem_iso ;;
+            10) teste_velocidade ;;
+            11) ejetar_pendrive ;;
             0) 
                 echo -e "\n${VERDE}Saindo... Até logo!${SEM_COR}"
                 exit 0
                 ;;
             *)
-                echo -e "\n${VERMELHO}Opção inválida! Escolha um número de 0 a 10.${SEM_COR}"
+                echo -e "\n${VERMELHO}Opção inválida! Escolha um número de 0 a 11.${SEM_COR}"
                 pausar
                 ;;
         esac
